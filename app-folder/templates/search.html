@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Legal Synonym Tool</title>
+</head>
+<body>
+    <h1>Legal Synonym Tool</h1>
+
+    <form action="/search" method="get">
+        <input type="text" name="user_input" value="{{ user_input or '' }}" placeholder="Enter your search query" required>
+        <button type="submit">Search</button>
+    </form>
+    
+    {% if user_input %}
+    <p><strong>You searched for:</strong> "{{ user_input }}"</p>
+    {% endif %}
+
+    {% if keyword %}
+    <p><strong>Detected keyword:</strong> {{ keyword }}</p>
+    {% endif %}
+
+    {% if result %}
+    <h2>Results:</h2>
+    {% if "Suggested legal search terms" in result %}
+        <ul>
+            {% for term in result.split(":")[1].split(",") %}
+                {% set clean_term = term.strip().split(" ")[0] %}
+                <li>
+                    <a href="https://caselaw.nationalarchives.gov.uk/search?per_page=10&order=-date&query={{ clean_term }}" target="_blank">
+                        {{ term.strip() }}
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>{{ result }}</p>
+    {% endif %}
+{% endif %}
+</body>
+</html>
