@@ -16,6 +16,16 @@ This notebook analyses three corpora:
 # Semantic Search prototype
 This prototype can be considered as a legal 'did you mean' function. It suggests legal alternatives to words by finding the intersection of nearest neighbours of a term between the BNC and the FCL corpus.
 
+### Building and running the application locally
+You first need access to the Word2Vec models in order for the prototype to run. These can be accessed upon request as they are too large to be shared on GitHub. You will need to download the .bin and .npy files for each model (1 model per corpus) and ensure that these are saved in your /models folder as described in semantic_app.py
+
+Build the docker container with
+`docker build . -t semantic-search-app`
+Then run it with
+`docker run -p 8000:80 semantic-search-app`
+
+You can then access the application at 0.0.0.0:8000/search
+
 # Features
 
 - Loads and preprocesses three corpora
