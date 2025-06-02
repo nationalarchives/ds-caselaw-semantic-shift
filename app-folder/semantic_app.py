@@ -1,22 +1,14 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+import streamlit as st
+import re
 import spacy
 import numpy as np
 from gensim.models import Word2Vec
 
-# App + templates setup
-app = FastAPI()
-templates = Jinja2Templates(directory="templates")
-
-# Load NLP models
-nlp = spacy.load("en_core_web_sm")
-best_bnc_model = Word2Vec.load("/models/bnc_sg_w10_f5_300_v3.bin")
-best_fcl_model = Word2Vec.load("/models/fcl_sg_w10_f5_300_v4.bin")
-
 # === Helper functions ===
 
 def extract_keyword_w2v(sentence, model):
+    # Load NLP model
+    nlp = spacy.load("en_core_web_sm")
     doc = nlp(sentence)
     content_words = [token.lemma_.lower() for token in doc if token.pos_ in ['NOUN', 'VERB', 'ADJ']]
     valid_words = [word for word in content_words if word in model.wv]
@@ -64,22 +56,107 @@ def suggest_search_terms_w2v(word, fcl_model, bnc_model, k=5, threshold=0.5):
     result_terms = [f"{term} ({score:.2f})" for term, score in top_neighbors]
     return f"Suggested legal search terms for '{word}': {', '.join(result_terms)}"
 
-@app.get("/search", response_class=HTMLResponse)
-def semantic_suggestions_w2v(request: Request, user_input: str = ""):
+def get_suggestions(user_input: str = ""):
+    best_bnc_model = Word2Vec.load("./models/bnc_sg_w10_f5_300_v3.bin")
+    best_fcl_model = Word2Vec.load("./models/fcl_sg_w10_f5_300_v4.bin")
+
     keyword = None
-    result = None
+    results = None
 
-    if user_input:
-        keyword = extract_keyword_w2v(user_input, best_fcl_model)
-        if not keyword:
-            result = "Couldn't extract a meaningful keyword. Try rephrasing."
-        else:
-            result = suggest_search_terms_w2v(keyword, best_fcl_model, best_bnc_model)
+    keyword = extract_keyword_w2v(user_input, best_fcl_model)
 
-    return templates.TemplateResponse("search.html", {
-        "request": request,
+    if not keyword:
+        result = "Couldn't extract a meaningful keyword. Try rephrasing."
+    else:
+        result = suggest_search_terms_w2v(keyword, best_fcl_model, best_bnc_model)
+
+    matches = re.findall(r"(\w+)\s+\(([\d.]+)\)", result)
+    results = [
+        (
+            term,
+            float(score),
+            f"https://caselaw.nationalarchives.gov.uk/search?per_page=10&order=-date&query={term}"
+        )
+        for term, score in matches
+    ]
+
+    return {
         "user_input": user_input,
-        "result": result,
+        "results": results,
         "keyword": keyword
-    })
+    }
 
+st.set_page_config(page_title="Legal Synonym Tool", layout="wide")
+
+if "results" not in st.session_state:
+    st.session_state["results"] = None
+
+st.markdown("""
+Legal Synonym Tool
+==================
+
+### This prototype is an experimental semantic search tool for The National Archives' [Find Case Law](https://caselaw.nationalarchives.gov.uk/) repository.
+
+""")
+
+
+col1, col2 = st.columns(2)
+
+
+with col1:
+    with st.container(border=True):
+        user_input = st.text_input("Enter your search query", autocomplete="off")
+
+        if st.button("Search", disabled=(not user_input)):
+            with st.spinner(text="Generating suggestions..."):
+                result = get_suggestions(user_input)
+
+                st.session_state["results"] = result["results"]
+                st.session_state["user_input"] = result["user_input"]
+                st.session_state["keyword"] = result["keyword"]
+                st.rerun()
+
+    if st.session_state["results"] is not None:
+        with st.container(border=True):
+            col3, col4 = st.columns(2)
+
+            with col3:
+                st.caption("You searched for:")
+                st.text(st.session_state["user_input"])
+            with col4:
+                st.caption("Detected keyword:")
+                st.text(st.session_state["keyword"])
+
+            results = st.session_state["results"]
+
+            if results:
+                st.caption("Results")
+
+                for term, score, url in results:
+                    st.markdown(f'<a href="{url}" target="_blank">{term}</a> ({score})', unsafe_allow_html=True)
+
+
+with col2:
+    with st.expander(label="About this tool", expanded=True):
+        st.markdown("""
+        This prototype uses custom-trained Word2Vec models to extract a single keyword from your input sentence. It then suggests related legal search terms based on their semantic similarity in the Find Case Law corpus.
+
+        Clicking on a suggested term takes you to the [Find Case Law](https://caselaw.nationalarchives.gov.uk/) search interface with that term pre-filled.
+        """)
+    with st.expander(label="Limitations", expanded=True):
+        st.markdown("""
+        *   This is an alpha-stage tool and is not comprehensive or authoritative.
+        *   Search suggestions are generated from relatively small legal corpora and may include unexpected or irrelevant terms.
+        *   The keyword extraction and similarity matching may not always align with legal search intent.
+        *   Only one keyword is selected per query; complex legal questions may require multiple concepts.
+
+        This tool is intended for research and prototyping purposes only.
+        """)
+
+    with st.expander(label="Credits", expanded=True):
+        st.markdown("""
+
+            This is an alpha version developed by **Caitlin Wilson** as part of a collaborative PhD project between **King's College London** and **The National Archives**, funded by the [**London Arts and Humanities Partnership**](https://www.lahp.ac.uk/).
+
+            Supervisors: Dr Barbara McGillivray and Dr Niccolo Ridi. With generous support from the Find Case Law team at The National Archives.
+        """)
