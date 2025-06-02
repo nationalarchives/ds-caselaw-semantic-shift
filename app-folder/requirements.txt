@@ -3,3 +3,4 @@ uvicorn
 gensim
 spacy
 numpy
+streamlit
