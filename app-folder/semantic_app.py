@@ -2,9 +2,21 @@ import streamlit as st
 import re
 import spacy
 import numpy as np
+import os
+import pandas as pd
 from gensim.models import Word2Vec
 
 # === Helper functions ===
+
+@st.cache_resource
+def load_models():
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    MODEL_DIR = os.path.join(BASE_DIR, "models")
+
+    bnc_model = Word2Vec.load(os.path.join(MODEL_DIR, "bnc_sg_w10_f5_300_v3.bin"))
+    fcl_model = Word2Vec.load(os.path.join(MODEL_DIR, "fcl_sg_w10_f5_300_v4.bin"))
+
+    return bnc_model, fcl_model
 
 def extract_keyword_w2v(sentence, model):
     # Load NLP model
@@ -25,9 +37,9 @@ def extract_keyword_w2v(sentence, model):
     best_word = valid_words[np.argmax(sims)]
     return best_word
 
-def suggest_search_terms_w2v(word, fcl_model, bnc_model, k=5, threshold=0.5):
+def suggest_search_terms_w2v(word, fcl_model, bnc_model, k=10, threshold=0.5):
     if word not in fcl_model.wv:
-        return f"'{word}' not found in the legal corpus. Try another term."
+        return []
 
     fcl_neighbors = fcl_model.wv.most_similar(word, topn=k*5)
     filtered_neighbors = []
@@ -42,43 +54,37 @@ def suggest_search_terms_w2v(word, fcl_model, bnc_model, k=5, threshold=0.5):
                 continue
         if neighbor in bnc_model.wv:
             bnc_similarity = bnc_model.wv.similarity(word, neighbor)
+            shift = score - bnc_similarity
             if score > bnc_similarity or bnc_similarity < 0.4:
-                filtered_neighbors.append((neighbor, score))
+                filtered_neighbors.append((neighbor, score, bnc_similarity, shift))
         else:
-            filtered_neighbors.append((neighbor, score))
+            bnc_similarity = 0.0
+            shift = score
+            filtered_neighbors.append((neighbor, score, bnc_similarity, shift))
 
     filtered_neighbors.sort(key=lambda x: x[1], reverse=True)
     top_neighbors = filtered_neighbors[:k]
 
-    if not top_neighbors:
-        return f"No distinctive legal terms found for '{word}'. Try another term."
+    return [
+        (
+            term,
+            score,        # FCL cosine similarity
+            bnc_sim,      # BNC cosine similarity
+            shift,        # Shift
+            f"https://caselaw.nationalarchives.gov.uk/search?per_page=10&order=-date&query={term}"
+        )
+        for term, score, bnc_sim, shift in top_neighbors
+    ]
 
-    result_terms = [f"{term} ({score:.2f})" for term, score in top_neighbors]
-    return f"Suggested legal search terms for '{word}': {', '.join(result_terms)}"
-
-def get_suggestions(user_input: str = ""):
-    best_bnc_model = Word2Vec.load("./models/bnc_sg_w10_f5_300_v3.bin")
-    best_fcl_model = Word2Vec.load("./models/fcl_sg_w10_f5_300_v4.bin")
-
-    keyword = None
-    results = None
+def get_suggestions(user_input: str = "", k: int = 10):
+    best_bnc_model, best_fcl_model = load_models()
 
     keyword = extract_keyword_w2v(user_input, best_fcl_model)
 
     if not keyword:
-        result = "Couldn't extract a meaningful keyword. Try rephrasing."
+        results = []
     else:
-        result = suggest_search_terms_w2v(keyword, best_fcl_model, best_bnc_model)
-
-    matches = re.findall(r"(\w+)\s+\(([\d.]+)\)", result)
-    results = [
-        (
-            term,
-            float(score),
-            f"https://caselaw.nationalarchives.gov.uk/search?per_page=10&order=-date&query={term}"
-        )
-        for term, score in matches
-    ]
+        results = suggest_search_terms_w2v(keyword, best_fcl_model, best_bnc_model, k=k)
 
     return {
         "user_input": user_input,
@@ -86,22 +92,22 @@ def get_suggestions(user_input: str = ""):
         "keyword": keyword
     }
 
+# === Streamlit app ===
+
 st.set_page_config(page_title="Legal Synonym Tool", layout="wide")
 
 if "results" not in st.session_state:
     st.session_state["results"] = None
 
 st.markdown("""
-Legal Synonym Tool
+Lost for Words: A Legal Synonym Tool
 ==================
 
 ### This prototype is an experimental semantic search tool for The National Archives' [Find Case Law](https://caselaw.nationalarchives.gov.uk/) repository.
 
 """)
 
-
 col1, col2 = st.columns(2)
-
 
 with col1:
     with st.container(border=True):
@@ -131,10 +137,31 @@ with col1:
 
             if results:
                 st.caption("Results")
+                
+                for term, score, bnc_sim, shift, url in results:
+                    if shift > 0.3:
+                        color = "red"
+                    elif shift < -0.3:
+                        color = "green"
+                    else:
+                        color = "black"
 
-                for term, score, url in results:
-                    st.markdown(f'<a href="{url}" target="_blank">{term}</a> ({score})', unsafe_allow_html=True)
+                    st.markdown(
+                        f'<a href="{url}" target="_blank" style="color:{color}">{term}</a> '
+                        f'(FCL: {score:.2f}, BNC: {bnc_sim:.2f}, Shift: {shift:+.2f})',
+                        unsafe_allow_html=True
+                    )
 
+                st.caption("Semantic Shift Visualisation")
+
+                df = pd.DataFrame([
+                    {"Term": term, "Semantic Shift": shift}
+                    for term, score, bnc_sim, shift, url in results
+                ])
+
+                st.bar_chart(df.set_index("Term"))
+            else:
+                st.warning("No distinctive legal terms found. Try another query.")
 
 with col2:
     with st.expander(label="About this tool", expanded=True):
@@ -143,6 +170,15 @@ with col2:
 
         Clicking on a suggested term takes you to the [Find Case Law](https://caselaw.nationalarchives.gov.uk/) search interface with that term pre-filled.
         """)
+
+    with st.expander(label="Scores", expanded=True):
+        st.markdown("""
+        *   The FCL (Find Case Law) score shows how strongly each term is associated with your query in the legal corpus. 
+        *   The BNC (British National Corpus) score shows its association in general English. 
+        *   The Shift score (FCL - BNC) highlights how distinctive or specialised the term is in legal language — higher shift suggests more domain-specific usage.
+        *   Results marked in red have a particularly high shift in meaning in the legal corpus, these terms are most likely to have distinct legal meaning. 
+        """)
+
     with st.expander(label="Limitations", expanded=True):
         st.markdown("""
         *   This is an alpha-stage tool and is not comprehensive or authoritative.
@@ -155,8 +191,9 @@ with col2:
 
     with st.expander(label="Credits", expanded=True):
         st.markdown("""
-
             This is an alpha version developed by **Caitlin Wilson** as part of a collaborative PhD project between **King's College London** and **The National Archives**, funded by the [**London Arts and Humanities Partnership**](https://www.lahp.ac.uk/).
 
-            Supervisors: Dr Barbara McGillivray and Dr Niccolo Ridi. With generous support from the Find Case Law team at The National Archives.
+            Supervisors: Dr Barbara McGillivray and Dr Niccolo Ridi. 
+            
+            With generous support from the Find Case Law team at The National Archives.
         """)
