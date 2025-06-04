@@ -19,6 +19,7 @@ def load_models():
     return bnc_model, fcl_model
 
 def extract_keyword_w2v(sentence, model):
+    # Load NLP model
     nlp = spacy.load("en_core_web_sm")
     doc = nlp(sentence)
     content_words = [token.lemma_.lower() for token in doc if token.pos_ in ['NOUN', 'VERB', 'ADJ']]
@@ -136,7 +137,7 @@ with col1:
 
             if results:
                 st.caption("Results")
-
+                
                 for term, score, bnc_sim, shift, url in results:
                     if shift > 0.3:
                         color = "red"
@@ -169,6 +170,7 @@ with col2:
 
         Clicking on a suggested term takes you to the [Find Case Law](https://caselaw.nationalarchives.gov.uk/) search interface with that term pre-filled.
         """)
+
     with st.expander(label="Scores", expanded=True):
         st.markdown("""
         *   The FCL (Find Case Law) score shows how strongly each term is associated with your query in the legal corpus. 
@@ -176,6 +178,7 @@ with col2:
         *   The Shift score (FCL - BNC) highlights how distinctive or specialised the term is in legal language — higher shift suggests more domain-specific usage.
         *   Results marked in red have a particularly high shift in meaning in the legal corpus, these terms are most likely to have distinct legal meaning. 
         """)
+
     with st.expander(label="Limitations", expanded=True):
         st.markdown("""
         *   This is an alpha-stage tool and is not comprehensive or authoritative.
