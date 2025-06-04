@@ -78,8 +78,19 @@ def suggest_search_terms_w2v(word, fcl_model, bnc_model, k=10, threshold=0.5):
 def get_suggestions(user_input: str = "", k: int = 10):
     best_bnc_model, best_fcl_model = load_models()
 
-    keyword = extract_keyword_w2v(user_input, best_fcl_model)
+    nlp = spacy.load("en_core_web_sm")
+    doc = nlp(user_input)
 
+    # Extract content words
+    content_words = [token.lemma_.lower() for token in doc if token.pos_ in ['NOUN', 'VERB', 'ADJ']]
+
+    # Default: use auto keyword OR manual override
+    if st.session_state.get("manual_keyword"):
+        keyword = st.session_state["manual_keyword"]
+    else:
+        keyword = extract_keyword_w2v(user_input, best_fcl_model)
+
+    # Generate results
     if not keyword:
         results = []
     else:
@@ -88,8 +99,10 @@ def get_suggestions(user_input: str = "", k: int = 10):
     return {
         "user_input": user_input,
         "results": results,
-        "keyword": keyword
+        "keyword": keyword,
+        "content_words": content_words
     }
+
 
 # === Streamlit app ===
 
@@ -110,16 +123,40 @@ col1, col2 = st.columns(2)
 
 with col1:
     with st.container(border=True):
-        user_input = st.text_input("Enter your search query", autocomplete="off")
+        user_input = st.text_input("Enter your search query", 
+                                   value = st.session_state.get("user_input", " "),
+                                   autocomplete="off")
 
-        if st.button("Search", disabled=(not user_input)):
+        #determine if we should run suggestions
+        should_run = False
+
+        if st.button("Search", disabled=(not user_input), key="Search"):
+            # User clicked search → run!
+            st.session_state["user_input"] = user_input
+            st.session_state["manual_keyword"] = None
+            should_run = True
+
+        #if manual keyword was clicked → also run
+        if st.session_state.get("manual_keyword") and st.session_state.get("user_input"):
+            should_run = True
+        
+        if should_run:
             with st.spinner(text="Generating suggestions..."):
-                result = get_suggestions(user_input)
+                result = get_suggestions(st.session_state["user_input"])
 
                 st.session_state["results"] = result["results"]
-                st.session_state["user_input"] = result["user_input"]
                 st.session_state["keyword"] = result["keyword"]
-                st.rerun()
+                st.session_state["content_words"] = result["content_words"]
+            
+            #show clickable content words
+        if st.session_state.get("content_words"):
+            st.caption("Click a word to get suggestions:")
+
+            for i, word in enumerate(st.session_state["content_words"]):
+                if st.button(f"Suggest for: {word}", key=f"suggest_{word}_{i}"):
+                    st.session_state["manual_keyword"] = word
+                    st.session_state["keyword"] = word
+                    st.rerun()
 
     if st.session_state["results"] is not None:
         with st.container(border=True):
@@ -128,6 +165,7 @@ with col1:
             with col3:
                 st.caption("You searched for:")
                 st.text(st.session_state["user_input"])
+
             with col4:
                 st.caption("Detected keyword:")
                 st.text(st.session_state["keyword"])
