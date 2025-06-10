@@ -48,6 +48,19 @@ resource "aws_iam_role_policy_attachment" "app_build_pipeline_codepipeline_codes
   policy_arn = aws_iam_policy.app_build_pipeline_codepipeline_codestar_connection.arn
 }
 
+resource "aws_iam_policy" "app_build_pipeline_codepipeline_codedeploy" {
+  name        = "${local.project_name}-${substr(sha512("app-build-pipeline-codepipeline-codedeploy"), 0, 6)}"
+  description = "${local.project_name}-app-build-pipeline-codepipeline-codedeploy"
+  policy = templatefile(
+    "${path.root}/policies/codepipeline-ecs-codedeploy.json.tpl", {}
+  )
+}
+
+resource "aws_iam_role_policy_attachment" "app_build_pipeline_codepipeline_codedeploy" {
+  role       = aws_iam_role.app_build_pipeline_codepipeline.name
+  policy_arn = aws_iam_policy.app_build_pipeline_codepipeline_codedeploy.arn
+}
+
 resource "aws_codepipeline" "app_build" {
   name = "${local.project_name}-app-build"
 
@@ -87,7 +100,7 @@ resource "aws_codepipeline" "app_build" {
       provider         = "CodeBuild"
       version          = "1"
       input_artifacts  = ["source"]
-      output_artifacts = ["imagedefinitions"]
+      output_artifacts = ["appspec"]
 
       configuration = {
         ProjectName = aws_codebuild_project.app_build_pipeline.name
@@ -96,20 +109,19 @@ resource "aws_codepipeline" "app_build" {
   }
 
   stage {
-    name = "Deploy-Rolling-Update"
+    name = "Deploy-Blue-Green"
 
     action {
       name            = "Deploy"
       category        = "Deploy"
       owner           = "AWS"
-      provider        = "ECS"
-      input_artifacts = ["imagedefinitions"]
+      provider        = "CodeDeploy"
+      input_artifacts = ["appspec"]
       version         = "1"
 
       configuration = {
-        ClusterName = aws_ecs_cluster.app.name
-        ServiceName = aws_ecs_service.app.name
-        FileName    = "imagedefinitions.json"
+        ApplicationName     = aws_codedeploy_app.ecs_service_blue_green.name
+        DeploymentGroupName = aws_codedeploy_deployment_group.ecs_service_blue_green.deployment_group_name
       }
     }
   }
@@ -117,5 +129,6 @@ resource "aws_codepipeline" "app_build" {
   depends_on = [
     aws_iam_role_policy_attachment.app_build_pipeline_codepipeline,
     aws_iam_role_policy_attachment.app_build_pipeline_codepipeline_codestar_connection,
+    aws_iam_role_policy_attachment.app_build_pipeline_codepipeline_codedeploy,
   ]
 }

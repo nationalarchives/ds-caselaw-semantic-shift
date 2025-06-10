@@ -18,7 +18,7 @@ resource "aws_ecs_task_definition" "app" {
         initProcessEnabled = false
       })
       cloudwatch_log_group  = aws_cloudwatch_log_group.app.name
-      awslogs_stream_prefix = "app"
+      awslogs_stream_prefix = "/app"
       region                = local.aws_region
     }
   )

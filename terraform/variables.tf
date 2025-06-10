@@ -43,10 +43,7 @@ variable "app_cloudfront_basic_auth_user_list" {
   type        = map(string)
 }
 
-# Currently we are only deploying a single farget task, and directing traffic to it's IP address
-# which changes each time it is deployed
-# We need to manually create a DNS record, which points towards that IP address
-variable "app_cloudfront_origin_domain_name" {
-  description = "Domain name for the CloudFront origin"
+variable "app_alb_tls_certificate_arn" {
+  description = "App ALB TLS certificate ARN"
   type        = string
 }

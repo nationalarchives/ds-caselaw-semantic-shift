@@ -42,7 +42,23 @@ resource "aws_subnet" "app_public_a" {
   }
 }
 
-resource "aws_route_table_association" "infrastructure_public" {
+resource "aws_subnet" "app_public_b" {
+  vpc_id            = aws_vpc.app.id
+  availability_zone = "${local.aws_region}b"
+
+  cidr_block = "10.0.1.0/24"
+
+  tags = {
+    Name = "${local.project_name}-app-public-b"
+  }
+}
+
+resource "aws_route_table_association" "infrastructure_public_a" {
   subnet_id      = aws_subnet.app_public_a.id
+  route_table_id = aws_route_table.app_public.id
+}
+
+resource "aws_route_table_association" "infrastructure_public_b" {
+  subnet_id      = aws_subnet.app_public_b.id
   route_table_id = aws_route_table.app_public.id
 }

@@ -12,6 +12,6 @@ locals {
   ]
   app_cloudfront_tls_certificate_arn  = var.app_cloudfront_tls_certificate_arn
   app_cloudfront_aliases              = var.app_cloudfront_aliases
-  app_cloudfront_origin_domain_name   = var.app_cloudfront_origin_domain_name
   app_cloudfront_basic_auth_user_list = var.app_cloudfront_basic_auth_user_list
+  app_alb_tls_certificate_arn         = var.app_alb_tls_certificate_arn
 }

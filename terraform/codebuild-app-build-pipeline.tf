@@ -60,7 +60,7 @@ resource "aws_codebuild_project" "app_build_pipeline" {
 
   environment {
     compute_type    = "BUILD_GENERAL1_SMALL"
-    image           = "aws/codebuild/standard:5.0"
+    image           = "aws/codebuild/standard:7.0"
     type            = "LINUX_CONTAINER"
     privileged_mode = true
 
@@ -82,6 +82,11 @@ resource "aws_codebuild_project" "app_build_pipeline" {
     environment_variable {
       name  = "REPOSITORY_URL"
       value = aws_ecr_repository.app.repository_url
+    }
+
+    environment_variable {
+      name  = "TASK_DEFINITION_FAMILY"
+      value = aws_ecs_task_definition.app.family
     }
   }
 

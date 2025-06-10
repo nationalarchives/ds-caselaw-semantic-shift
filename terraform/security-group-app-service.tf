@@ -5,13 +5,13 @@ resource "aws_security_group" "app" {
 }
 
 resource "aws_security_group_rule" "app_http_ingress" {
-  type              = "ingress"
-  from_port         = 80
-  to_port           = 80
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.app.id
-  description       = "Allow HTTP from anywhere"
+  type                     = "ingress"
+  from_port                = 80
+  to_port                  = 80
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.ecs_service_alb.id
+  security_group_id        = aws_security_group.app.id
+  description              = "Allow HTTP from ALB"
 }
 
 resource "aws_security_group_rule" "app_all_egress" {

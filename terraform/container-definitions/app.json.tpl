@@ -6,8 +6,8 @@
       "logDriver": "awslogs",
       "options": {
         "awslogs-group": "${cloudwatch_log_group}",
-        "awslogs-region": "eu-west-2",
-        "awslogs-stream-prefix": "app"
+        "awslogs-region": "${region}",
+        "awslogs-stream-prefix": "${awslogs_stream_prefix}"
       }
     },
     "portMappings": [

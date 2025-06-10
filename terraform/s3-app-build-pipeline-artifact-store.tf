@@ -5,7 +5,7 @@ resource "aws_s3_bucket" "app_build_pipeline_artifact_store" {
 resource "aws_s3_bucket_policy" "app_build_pipeline_artifact_store" {
   bucket = aws_s3_bucket.app_build_pipeline_artifact_store.id
   policy = templatefile(
-    "${path.module}/policies/s3-bucket-policy.json.tpl",
+    "${path.root}/policies/s3-bucket-policy.json.tpl",
     {
       statement = <<EOT
       [
