@@ -5,12 +5,24 @@
 </head>
 <body>
     <h1>Legal Synonym Tool</h1>
-
+    <h3>
+        This prototype is an experimental semantic search tool for The National Archives' 
+        <a href="https://caselaw.nationalarchives.gov.uk/" target="_blank">Find Case Law</a> repository.
+    </h3>
+    <p>
+        This is an alpha version developed by <strong>Caitlin Wilson</strong> as part of a collaborative PhD project between 
+        <strong>King's College London</strong> and <strong>The National Archives</strong>, funded by the 
+        <a href="https://www.lahp.ac.uk/" target="_blank"><strong>London Arts and Humanities Partnership</strong></a>.
+    </p>
+    <p></p>
+        Supervisors: Dr Barbara McGillivray and Dr Niccolo Ridi.
+        With generous support from the Find Case Law team at The National Archives.
+    </p>
+    
     <form action="/search" method="get">
         <input type="text" name="user_input" value="{{ user_input or '' }}" placeholder="Enter your search query" required>
         <button type="submit">Search</button>
     </form>
-    
     {% if user_input %}
     <p><strong>You searched for:</strong> "{{ user_input }}"</p>
     {% endif %}
@@ -36,5 +48,27 @@
         <p>{{ result }}</p>
     {% endif %}
 {% endif %}
+
+<div>
+    <h2>About this tool</h2>
+    <p>
+    This prototype uses custom-trained Word2Vec models to extract a single keyword from your input sentence.
+    It then suggests related legal search terms based on their semantic similarity in the Find Case Law corpus.
+    </p>    
+    <p>
+    Clicking on a suggested term takes you to the <a href="https://caselaw.nationalarchives.gov.uk/" target="_blank">Find Case Law</a> search interface with that term pre-filled.
+    </p>
+    <h3>Limitations</h3>
+    <ul>
+    <li>This is an alpha-stage tool and is not comprehensive or authoritative.</li>
+    <li>Search suggestions are generated from relatively small legal corpora and may include unexpected or irrelevant terms.</li>
+    <li>The keyword extraction and similarity matching may not always align with legal search intent.</li>
+    <li>Only one keyword is selected per query; complex legal questions may require multiple concepts.</li>
+    </ul>
+    <p>
+    This tool is intended for research and prototyping purposes only.
+    </p>
+    </div>
+
 </body>
 </html>

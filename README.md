@@ -13,7 +13,10 @@ This notebook analyses three corpora:
 - British National Corpus: http://www.natcorp.ox.ac.uk
 - UK Legislation: https://www.legislation.gov.uk
 
-### Semantic Search prototype
+# app-folder
+This folder contains all code and assets related to running the semantic suggestions web app. It uses the semantic_sggestions_w2v function described in the Jupyter Notebook to guide user queries to alternative search terms.
+
+## Semantic Search prototype
 This prototype can be considered as a legal 'did you mean' function. It suggests legal alternatives to words by finding the intersection of nearest neighbours of a term between the BNC and the FCL corpus.
 
 ### Features
@@ -23,18 +26,15 @@ This prototype can be considered as a legal 'did you mean' function. It suggests
 - Prototype for semantic search engine
 - Visualizes word shift magnitude
 
-# app-folder
-This folder contains all code and assets related to running the semantic suggestions web app. It uses the semantic_sggestions_w2v function described in the Jupyter Notebook to guide user queries to alternative search terms.
+### Building and running the application locally
+You first need access to the Word2Vec models in order for the prototype to run. These can be accessed upon request as they are too large to be shared on GitHub. You will need to download the .bin and .npy files for each model (1 model per corpus) and ensure that these are saved in your /models folder as described in semantic_app.py
 
-### Structure
-app-folder/
-├── semantic_app.py          # Main backend logic for the semantic search app
-├── Dockerfile               # Docker configuration for containerized deployment
-├── requirements.txt         # Python dependencies for the app
-├── templates/
-│   └── search.html          # Frontend HTML template for the search interface
-└── models/
-    └── .gitkeep             # Placeholder for large model files (not tracked by Git)
+Build the docker container with
+`docker build . -t semantic-search-app`
+Then run it with
+`docker run -p 8000:80 semantic-search-app`
+
+You can then access the application at 0.0.0.0:8000/search
 
 ### Note About models/
 The models/ directory is intentionally excluded from version control due to GitHub's file size limits (100 MB max per file). It should contain:
