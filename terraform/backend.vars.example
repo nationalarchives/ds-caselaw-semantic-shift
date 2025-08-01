@@ -1,0 +1,4 @@
+bucket  = "<terraform_state_bucket_name>"
+key     = "terraform.tfstate"
+region  = "<terraform_state_bucket_region>"
+encrypt = true
