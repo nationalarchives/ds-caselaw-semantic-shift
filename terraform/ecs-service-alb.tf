@@ -154,6 +154,13 @@ resource "aws_alb_listener_rule" "ecs_service_http_host_header" {
     }
   }
 
+  condition {
+    http_header {
+      http_header_name = "X-CloudFront-Secret"
+      values           = [random_password.app_service_cloudfront_bypass_protection_secret.result]
+    }
+  }
+
   lifecycle {
     ignore_changes = [
       action,

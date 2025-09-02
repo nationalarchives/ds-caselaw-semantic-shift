@@ -1,3 +1,9 @@
+resource "random_password" "app_service_cloudfront_bypass_protection_secret" {
+  length           = 32
+  special          = true
+  override_special = "123456890"
+}
+
 resource "aws_cloudfront_function" "app_service_viewer_request" {
   name    = "app-service-viewer-request"
   runtime = "cloudfront-js-2.0"
@@ -47,6 +53,11 @@ resource "aws_cloudfront_distribution" "app_service" {
       origin_ssl_protocols     = ["TLSv1.2"]
       origin_keepalive_timeout = 5
       origin_read_timeout      = 30
+    }
+
+    custom_header {
+      name  = "X-CloudFront-Secret"
+      value = random_password.app_service_cloudfront_bypass_protection_secret.result
     }
   }
 
