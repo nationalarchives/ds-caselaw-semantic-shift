@@ -124,7 +124,7 @@ col1, col2 = st.columns(2)
 
 with col1:
     with st.container(border=True):
-        user_input = st.text_input("Enter your search query", 
+        user_input = st.text_input("Enter your search query",
                                    value = st.session_state.get("user_input", " "),
                                    autocomplete="off")
 
@@ -140,7 +140,7 @@ with col1:
         #if manual keyword was clicked → also run
         if st.session_state.get("manual_keyword") and st.session_state.get("user_input"):
             should_run = True
-        
+
         if should_run:
             with st.spinner(text="Generating suggestions..."):
                 result = get_suggestions(st.session_state["user_input"])
@@ -148,7 +148,7 @@ with col1:
                 st.session_state["results"] = result["results"]
                 st.session_state["keyword"] = result["keyword"]
                 st.session_state["content_words"] = result["content_words"]
-            
+
             #show clickable content words
         if st.session_state.get("content_words"):
             st.caption("Click a word to get suggestions:")
@@ -175,7 +175,7 @@ with col1:
 
             if results:
                 st.caption("Results")
-                
+
                 for term, score, bnc_sim, shift, url in results:
                     if shift > 0.3:
                         color = "red"
@@ -211,10 +211,10 @@ with col2:
 
     with st.expander(label="Scores", expanded=True):
         st.markdown("""
-        *   The FCL (Find Case Law) score shows how strongly each term is associated with your query in the legal corpus. 
-        *   The BNC (British National Corpus) score shows its association in general English. 
+        *   The FCL (Find Case Law) score shows how strongly each term is associated with your query in the legal corpus.
+        *   The BNC (British National Corpus) score shows its association in general English.
         *   The Shift score (FCL - BNC) highlights how distinctive or specialised the term is in legal language — higher shift suggests more domain-specific usage.
-        *   Results marked in red have a particularly high shift in meaning in the legal corpus, these terms are most likely to have distinct legal meaning. 
+        *   Results marked in red have a particularly high shift in meaning in the legal corpus, these terms are most likely to have distinct legal meaning.
         """)
 
     with st.expander(label="Limitations", expanded=True):
@@ -231,7 +231,7 @@ with col2:
         st.markdown("""
             This is an alpha version developed by **Caitlin Wilson** as part of a collaborative PhD project between **King's College London** and **The National Archives**, funded by the [**London Arts and Humanities Partnership**](https://www.lahp.ac.uk/).
 
-            Supervisors: Dr Barbara McGillivray and Dr Niccolo Ridi. 
-            
+            Supervisors: Dr Barbara McGillivray and Dr Niccolo Ridi.
+
             With generous support from the Find Case Law team at The National Archives.
         """)

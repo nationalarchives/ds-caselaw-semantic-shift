@@ -6,19 +6,19 @@
 <body>
     <h1>Legal Synonym Tool</h1>
     <h3>
-        This prototype is an experimental semantic search tool for The National Archives' 
+        This prototype is an experimental semantic search tool for The National Archives'
         <a href="https://caselaw.nationalarchives.gov.uk/" target="_blank">Find Case Law</a> repository.
     </h3>
     <p>
-        This is an alpha version developed by <strong>Caitlin Wilson</strong> as part of a collaborative PhD project between 
-        <strong>King's College London</strong> and <strong>The National Archives</strong>, funded by the 
+        This is an alpha version developed by <strong>Caitlin Wilson</strong> as part of a collaborative PhD project between
+        <strong>King's College London</strong> and <strong>The National Archives</strong>, funded by the
         <a href="https://www.lahp.ac.uk/" target="_blank"><strong>London Arts and Humanities Partnership</strong></a>.
     </p>
     <p></p>
         Supervisors: Dr Barbara McGillivray and Dr Niccolo Ridi.
         With generous support from the Find Case Law team at The National Archives.
     </p>
-    
+
     <form action="/search" method="get">
         <input type="text" name="user_input" value="{{ user_input or '' }}" placeholder="Enter your search query" required>
         <button type="submit">Search</button>
@@ -54,7 +54,7 @@
     <p>
     This prototype uses custom-trained Word2Vec models to extract a single keyword from your input sentence.
     It then suggests related legal search terms based on their semantic similarity in the Find Case Law corpus.
-    </p>    
+    </p>
     <p>
     Clicking on a suggested term takes you to the <a href="https://caselaw.nationalarchives.gov.uk/" target="_blank">Find Case Law</a> search interface with that term pre-filled.
     </p>
