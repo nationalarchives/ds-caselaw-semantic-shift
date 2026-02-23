@@ -9,7 +9,7 @@ COPY semantic_app.py /code/
 COPY templates /code/templates
 COPY models /models
 
-RUN apt-get update && apt-get install -y awscli
+RUN apt-get update && apt-get install -y --no-install-recommends awscli=2.33.27 && rm -rf /var/lib/apt/lists/*
 
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
