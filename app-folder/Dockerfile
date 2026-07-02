@@ -1,7 +1,7 @@
-FROM python:3.14.6@sha256:09b29c360b84742bf98eba40b214f7f6b4b53286bb2c8a8b5b1afa188a8d9c0e
+FROM python:3.12.13-trixie@sha256:a9e4190f02729f01e5b3719bd8b3ea0f8d9350dc17d01a1ce1ca6e3fbfcf7a99
 
 # renovate: depName=awscli
-ENV AWS_CLI_VERSION="2.33.27"
+ENV AWS_CLI_VERSION="2.35.14"
 
 RUN useradd -m -u 1000 appuser
 
@@ -12,7 +12,14 @@ COPY semantic_app.py /code/
 COPY templates /code/templates
 COPY models /models
 
-RUN apt-get update && apt-get install -y --no-install-recommends awscli="${AWS_CLI_VERSION}" && rm -rf /var/lib/apt/lists/*
+ARG AWSCLI_VERSION=2.28.7
+
+RUN curl -fsSL \
+      "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${AWSCLI_VERSION}.zip" \
+      -o awscliv2.zip && \
+    unzip awscliv2.zip && \
+    ./aws/install && \
+    rm -rf aws awscliv2.zip
 
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
