@@ -7,8 +7,8 @@ resource "aws_security_group" "ecs_service_alb" {
 resource "aws_security_group_rule" "ecs_service_alb_container_egress_tcp" {
   description              = "Allow container port tcp egress to containers"
   type                     = "egress"
-  from_port                = 80
-  to_port                  = 80
+  from_port                = 8501
+  to_port                  = 8501
   protocol                 = "tcp"
   source_security_group_id = aws_security_group.app.id
   security_group_id        = aws_security_group.ecs_service_alb.id
@@ -63,7 +63,7 @@ resource "aws_alb" "ecs_service" {
 resource "aws_alb_target_group" "ecs_service_blue" {
   name = "${local.project_name}-ecs-service-b"
 
-  port        = "80"
+  port        = "8501"
   protocol    = "HTTP"
   vpc_id      = aws_vpc.app.id
   target_type = "ip"
@@ -86,7 +86,7 @@ resource "aws_alb_target_group" "ecs_service_blue" {
 resource "aws_alb_target_group" "ecs_service_green" {
   name = "${local.project_name}-ecs-service-g"
 
-  port        = "80"
+  port        = "8501"
   protocol    = "HTTP"
   vpc_id      = aws_vpc.app.id
   target_type = "ip"

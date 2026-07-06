@@ -29,8 +29,9 @@ RUN chown -R appuser:appuser /code /models
 
 USER appuser
 
-EXPOSE 80
-HEALTHCHECK --interval=10s --timeout=3s --start-period=20s --retries=6 \
-  CMD curl --fail http://localhost:80/_stcore/health || exit 1
+EXPOSE 8501
 
-CMD ["streamlit", "run", "semantic_app.py", "--server.port=80", "--server.address=0.0.0.0"]
+HEALTHCHECK --interval=10s --timeout=3s --start-period=20s --retries=6 \
+  CMD curl --fail http://localhost:8501/_stcore/health || exit 1
+
+CMD ["streamlit", "run", "semantic_app.py", "--server.port=8501", "--server.address=0.0.0.0"]
