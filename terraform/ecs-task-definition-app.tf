@@ -12,8 +12,8 @@ resource "aws_ecs_task_definition" "app" {
       image          = aws_ecr_repository.app.repository_url
       entrypoint     = jsonencode(local.app_entrypoint)
       environment    = jsonencode([]),
-      host_port      = 80
-      container_port = 80
+      host_port      = 8501
+      container_port = 8501
       linux_parameters = jsonencode({
         initProcessEnabled = false
       })

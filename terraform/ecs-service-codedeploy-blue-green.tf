@@ -89,7 +89,7 @@ resource "terraform_data" "ecs_service_blue_green_create_codedeploy_deployment" 
       "${path.root}/appspecs/ecs.json.tpl",
       {
         task_definition_arn = aws_ecs_task_definition.app.arn
-        container_port      = 80
+        container_port      = 8501
         container_name      = "app"
       }
     )),
@@ -105,14 +105,14 @@ resource "terraform_data" "ecs_service_blue_green_create_codedeploy_deployment" 
     "${path.root}/appspecs/ecs.json.tpl",
     {
       task_definition_arn = aws_ecs_task_definition.app.arn
-      container_port      = 80
+      container_port      = 8501
       container_name      = "app"
     }), "\"", "\\\"")}" \
       -S "${sha256(templatefile(
     "${path.root}/appspecs/ecs.json.tpl",
     {
       task_definition_arn = aws_ecs_task_definition.app.arn
-      container_port      = 80
+      container_port      = 8501
       container_name      = "app"
 }))}"
     EOF
