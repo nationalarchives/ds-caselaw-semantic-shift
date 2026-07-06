@@ -3,19 +3,14 @@ name: Verify Docker Build
 permissions: {}
 
 on:
-  pull_request:
-    branches:
-      - main
-    paths:
-      - "app-folder/Dockerfile"
   push:
     branches:
       - main
     paths:
-      - "app-folder/Dockerfile"
+      - "app-folder/**"
 
 jobs:
-  docker-build:
+  docker-build-and-health-check:
     runs-on: ubuntu-latest
 
     steps:
@@ -30,3 +25,13 @@ jobs:
           docker build \
             --tag local-build-test:latest \
             .
+
+      - name: Run Docker container for health check
+        run: docker run -d --name app-smoke-test local-build-test:latest
+
+      - name: Wait for container healthy
+        run: timeout 120s bash -c 'until [ "$(docker inspect --format "{{.State.Health.Status}}" app-smoke-test)" = "healthy" ]; do sleep 2; done'
+
+      - name: Show container logs on failure
+        if: failure()
+        run: docker logs app-smoke-test
