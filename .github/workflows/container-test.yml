@@ -3,11 +3,10 @@ name: Verify Docker Build
 permissions: {}
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "app-folder/**"
+  pull_request:
+    branches: ["main"]
+  merge_group:
+    types: [checks_requested]
 
 jobs:
   docker-build-and-health-check:
