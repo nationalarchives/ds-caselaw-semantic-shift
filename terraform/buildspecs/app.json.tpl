@@ -5,17 +5,17 @@ phases:
     commands:
       - echo Build started on `date`
       - echo Logging in to Amazon ECR...
-      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin "${aws_account_id}.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com"
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin "${repository_url%/*}"
   build:
     commands:
       - echo Building the Docker image...
       - cd app-folder
-      - docker build -t ${image_repo_name}:test .
+      - docker build -t ${repository_url}:test .
       - cd ..
       - IMAGE_TAG=commit-$CODEBUILD_RESOLVED_SOURCE_VERSION
       - echo Tagging the successfully tested image as latest...
-      - docker tag ${image_repo_name}:test ${repository_url}:latest
-      - docker tag ${image_repo_name}:test ${repository_url}:$IMAGE_TAG
+      - docker tag ${repository_url}:test ${repository_url}:latest
+      - docker tag ${repository_url}:test ${repository_url}:$IMAGE_TAG
   post_build:
     commands:
       - echo Build completed on `date`
@@ -27,6 +27,11 @@ phases:
         echo "Writing appspec file...";
         APP_PORT="${app_container_port}";
         container_name="${container_name}";
+        task_definition_family="${task_definition_family}";
+        task_role_arn="${task_role_arn}";
+        execution_role_arn="${execution_role_arn}";
+        task_memory="${task_memory}";
+        task_cpu="${task_cpu}";
         image="${repository_url}:$IMAGE_TAG";
         cloudwatch_log_group="${cloudwatch_log_group}";
         region="$AWS_DEFAULT_REGION";
@@ -36,7 +41,7 @@ phases:
         environment='${environment_json}';
         linux_parameters='${linux_parameters_json}';
         entrypoint='${app_entrypoint_json}';
-        export container_name image cloudwatch_log_group region awslogs_stream_prefix host_port container_port environment linux_parameters entrypoint;
+        export container_name task_definition_family task_role_arn execution_role_arn task_memory task_cpu image cloudwatch_log_group region awslogs_stream_prefix host_port container_port environment linux_parameters entrypoint;
         envsubst < terraform/container-definitions/app.json.tpl > /new-container-defs.json;
         NEW_TASK_DEFINITION="$(aws ecs register-task-definition \
           --family "${task_definition_family}" \
@@ -49,10 +54,8 @@ phases:
           --cpu "${task_cpu}" \
           )";
         NEW_TASK_DEFINITION_ARN="$(echo "$NEW_TASK_DEFINITION" | jq -r '.taskDefinition.taskDefinitionArn')";
-        container_name="${container_name}";
-        container_port="${app_container_port}";
         task_definition_arn="$NEW_TASK_DEFINITION_ARN";
-        export container_name container_port task_definition_arn;
+        export task_definition_arn;
         envsubst < terraform/appspecs/ecs.json.tpl > appspec.json;
 artifacts:
   files:

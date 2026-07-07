@@ -68,28 +68,25 @@ resource "aws_codebuild_project" "app_build_pipeline" {
   source {
     type      = "CODEPIPELINE"
     buildspec = templatefile("${path.root}/buildspecs/app.json.tpl", {
-      aws_account_id         = local.aws_account_id
-      image_repo_name        = aws_ecr_repository.app.name
       repository_url         = aws_ecr_repository.app.repository_url
-      container_name         = "app"
+      container_name         = local.app_container_name
       task_definition_family = aws_ecs_task_definition.app.family
       task_role_arn          = aws_iam_role.app_task.arn
       execution_role_arn     = aws_iam_role.app_task_execution.arn
-      task_memory            = "2048"
-      task_cpu               = "1024"
+      task_memory            = local.app_task_memory
+      task_cpu               = local.app_task_cpu
       cloudwatch_log_group   = aws_cloudwatch_log_group.app.name
-      awslogs_stream_prefix  = "/app"
-      environment_json      = jsonencode([])
-      linux_parameters_json = jsonencode({
-        initProcessEnabled = false
-      })
+      awslogs_stream_prefix  = local.app_awslogs_stream_prefix
+      environment_json       = jsonencode(local.app_environment)
+      linux_parameters_json  = jsonencode(local.app_linux_parameters)
       app_entrypoint_json    = jsonencode(local.app_entrypoint)
-      app_container_port     = "8501"
+      app_container_port     = local.app_container_port
     })
   }
 
   depends_on = [
     aws_iam_role_policy_attachment.app_build_pipeline_codebuild,
+    aws_iam_role_policy_attachment.app_build_pipeline_codebuild_blue_green,
     aws_iam_role_policy_attachment.app_build_pipeline_codebuild_ecr_push,
   ]
 }
