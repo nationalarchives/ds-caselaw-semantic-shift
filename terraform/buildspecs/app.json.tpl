@@ -36,6 +36,7 @@ phases:
         environment='[]';
         linux_parameters='{"initProcessEnabled":false}';
         entrypoint="$APP_ENTRYPOINT_JSON";
+        export container_name image cloudwatch_log_group region awslogs_stream_prefix host_port container_port environment linux_parameters entrypoint;
         envsubst < terraform/container-definitions/app.json.tpl > /new-container-defs.json;
         NEW_TASK_DEFINITION="$(aws ecs register-task-definition \
           --family "$TASK_DEFINITION_FAMILY" \
@@ -49,6 +50,7 @@ phases:
           )";
         NEW_TASK_DEFINITION_ARN="$(echo "$NEW_TASK_DEFINITION" | jq -r '.taskDefinition.taskDefinitionArn')";
         task_definition_arn="$NEW_TASK_DEFINITION_ARN";
+        export task_definition_arn;
         envsubst < terraform/appspecs/ecs.json.tpl > appspec.json;
 artifacts:
   files:
