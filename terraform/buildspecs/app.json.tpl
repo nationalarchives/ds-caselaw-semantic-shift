@@ -9,13 +9,12 @@ phases:
   build:
     commands:
       - echo Building the Docker image...
-      - cd app-folder
-      - docker build -t ${repository_url}:test .
-      - cd ..
       - IMAGE_TAG=commit-$CODEBUILD_RESOLVED_SOURCE_VERSION
-      - echo Tagging the successfully tested image as latest...
-      - docker tag ${repository_url}:test ${repository_url}:latest
-      - docker tag ${repository_url}:test ${repository_url}:$IMAGE_TAG
+      - cd app-folder
+      - docker build -t ${repository_url}:$IMAGE_TAG .
+      - cd ..
+      - echo Tagging built image as latest...
+      - docker tag ${repository_url}:$IMAGE_TAG ${repository_url}:latest
   post_build:
     commands:
       - echo Build completed on `date`
