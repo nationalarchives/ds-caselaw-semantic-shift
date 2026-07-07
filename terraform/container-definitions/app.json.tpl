@@ -17,9 +17,7 @@
         "containerPort": ${container_port}
       }
     ],
-    %{ if environment != "[]" }
     "environment": ${environment},
-    %{ endif }
     "linuxParameters": ${linux_parameters},
     "entrypoint": ${entrypoint},
     "command": [],

@@ -25,43 +25,31 @@ phases:
       - docker push $REPOSITORY_URL:$IMAGE_TAG
       - >-
         echo "Writing appspec file...";
-        aws ecs describe-task-definition --task-definition "$TASK_DEFINITION_FAMILY" | jq > latest-task-definition.json;
-        cat latest-task-definition.json | jq -r --arg image "$REPOSITORY_URL:$IMAGE_TAG" '.taskDefinition.containerDefinitions | .[0].image = $image' > /new-container-defs.json;
+        APP_PORT="${APP_CONTAINER_PORT}";
+        container_name="$CONTAINER_NAME";
+        image="$REPOSITORY_URL:$IMAGE_TAG";
+        cloudwatch_log_group="$CLOUDWATCH_LOG_GROUP";
+        region="$AWS_DEFAULT_REGION";
+        awslogs_stream_prefix="$AWSLOGS_STREAM_PREFIX";
+        host_port="$APP_PORT";
+        container_port="$APP_PORT";
+        environment='[]';
+        linux_parameters='{"initProcessEnabled":false}';
+        entrypoint="$APP_ENTRYPOINT_JSON";
+        envsubst < terraform/container-definitions/app.json.tpl > /new-container-defs.json;
         NEW_TASK_DEFINITION="$(aws ecs register-task-definition \
           --family "$TASK_DEFINITION_FAMILY" \
           --container-definitions file:///new-container-defs.json \
-          --task-role-arn "$(cat latest-task-definition.json | jq -r '.taskDefinition.taskRoleArn')" \
-          --execution-role-arn "$(cat latest-task-definition.json | jq -r '.taskDefinition.executionRoleArn')" \
-          --network-mode "$(cat latest-task-definition.json | jq -r '.taskDefinition.networkMode')" \
-          --volumes "$(cat latest-task-definition.json | jq -r '.taskDefinition.volumes')" \
-          --placement-constraints "$(cat latest-task-definition.json | jq -r '.taskDefinition.placementConstraints')" \
-          --requires-compatibilities "$(cat latest-task-definition.json | jq -r '.taskDefinition.requiresCompatibilities')" \
-          --memory "$(cat latest-task-definition.json | jq -r '.taskDefinition.memory')" \
-          --cpu "$(cat latest-task-definition.json | jq -r '.taskDefinition.cpu')" \
+          --task-role-arn "$TASK_ROLE_ARN" \
+          --execution-role-arn "$EXECUTION_ROLE_ARN" \
+          --network-mode "awsvpc" \
+          --requires-compatibilities "FARGATE" \
+          --memory "$TASK_MEMORY" \
+          --cpu "$TASK_CPU" \
           )";
         NEW_TASK_DEFINITION_ARN="$(echo "$NEW_TASK_DEFINITION" | jq -r '.taskDefinition.taskDefinitionArn')";
-        CONTAINER_PORT="$(echo "$NEW_TASK_DEFINITION" | jq -r '.taskDefinition.containerDefinitions[0].portMappings[0].containerPort')";
-        APPSPEC="$(jq -rn \
-          --arg task_definition_arn "$NEW_TASK_DEFINITION_ARN" \
-          --arg container_name "$CONTAINER_NAME" \
-          --argjson container_port "$CONTAINER_PORT" \
-          '{
-            Resources: [
-              {
-                TargetService: {
-                  Type: "AWS::ECS::Service",
-                  Properties: {
-                    TaskDefinition: $task_definition_arn,
-                    LoadBalancerInfo: {
-                      ContainerName: $container_name,
-                      ContainerPort: $container_port
-                    }
-                  }
-                }
-              }
-            ]
-          }')";
-        echo "$APPSPEC" > appspec.json;
+        task_definition_arn="$NEW_TASK_DEFINITION_ARN";
+        envsubst < terraform/appspecs/ecs.json.tpl > appspec.json;
 artifacts:
   files:
     - appspec.json

@@ -88,6 +88,46 @@ resource "aws_codebuild_project" "app_build_pipeline" {
       name  = "TASK_DEFINITION_FAMILY"
       value = aws_ecs_task_definition.app.family
     }
+
+    environment_variable {
+      name  = "TASK_ROLE_ARN"
+      value = aws_iam_role.app_task.arn
+    }
+
+    environment_variable {
+      name  = "EXECUTION_ROLE_ARN"
+      value = aws_iam_role.app_task_execution.arn
+    }
+
+    environment_variable {
+      name  = "TASK_MEMORY"
+      value = "2048"
+    }
+
+    environment_variable {
+      name  = "TASK_CPU"
+      value = "1024"
+    }
+
+    environment_variable {
+      name  = "CLOUDWATCH_LOG_GROUP"
+      value = aws_cloudwatch_log_group.app.name
+    }
+
+    environment_variable {
+      name  = "AWSLOGS_STREAM_PREFIX"
+      value = "/app"
+    }
+
+    environment_variable {
+      name  = "APP_ENTRYPOINT_JSON"
+      value = jsonencode(local.app_entrypoint)
+    }
+
+    environment_variable {
+      name  = "APP_CONTAINER_PORT"
+      value = "8501"
+    }
   }
 
   source {

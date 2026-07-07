@@ -22,7 +22,7 @@ You first need access to the Word2Vec models in order for the prototype to run. 
 Build the docker container with
 `docker build . -t semantic-search-app`
 Then run it with
-`docker run -p 8000:80 semantic-search-app`
+`docker run -p 8000:8501 semantic-search-app`
 
 You can then access the application at 0.0.0.0:8000/search
 
