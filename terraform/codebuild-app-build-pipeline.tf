@@ -63,76 +63,29 @@ resource "aws_codebuild_project" "app_build_pipeline" {
     image           = "aws/codebuild/standard:7.0"
     type            = "LINUX_CONTAINER"
     privileged_mode = true
-
-    environment_variable {
-      name  = "AWS_ACCOUNT_ID"
-      value = local.aws_account_id
-    }
-
-    environment_variable {
-      name  = "CONTAINER_NAME"
-      value = "app"
-    }
-
-    environment_variable {
-      name  = "IMAGE_REPO_NAME"
-      value = aws_ecr_repository.app.name
-    }
-
-    environment_variable {
-      name  = "REPOSITORY_URL"
-      value = aws_ecr_repository.app.repository_url
-    }
-
-    environment_variable {
-      name  = "TASK_DEFINITION_FAMILY"
-      value = aws_ecs_task_definition.app.family
-    }
-
-    environment_variable {
-      name  = "TASK_ROLE_ARN"
-      value = aws_iam_role.app_task.arn
-    }
-
-    environment_variable {
-      name  = "EXECUTION_ROLE_ARN"
-      value = aws_iam_role.app_task_execution.arn
-    }
-
-    environment_variable {
-      name  = "TASK_MEMORY"
-      value = "2048"
-    }
-
-    environment_variable {
-      name  = "TASK_CPU"
-      value = "1024"
-    }
-
-    environment_variable {
-      name  = "CLOUDWATCH_LOG_GROUP"
-      value = aws_cloudwatch_log_group.app.name
-    }
-
-    environment_variable {
-      name  = "AWSLOGS_STREAM_PREFIX"
-      value = "/app"
-    }
-
-    environment_variable {
-      name  = "APP_ENTRYPOINT_JSON"
-      value = jsonencode(local.app_entrypoint)
-    }
-
-    environment_variable {
-      name  = "APP_CONTAINER_PORT"
-      value = "8501"
-    }
   }
 
   source {
     type      = "CODEPIPELINE"
-    buildspec = templatefile("${path.root}/buildspecs/app.json.tpl", {})
+    buildspec = templatefile("${path.root}/buildspecs/app.json.tpl", {
+      aws_account_id         = local.aws_account_id
+      image_repo_name        = aws_ecr_repository.app.name
+      repository_url         = aws_ecr_repository.app.repository_url
+      container_name         = "app"
+      task_definition_family = aws_ecs_task_definition.app.family
+      task_role_arn          = aws_iam_role.app_task.arn
+      execution_role_arn     = aws_iam_role.app_task_execution.arn
+      task_memory            = "2048"
+      task_cpu               = "1024"
+      cloudwatch_log_group   = aws_cloudwatch_log_group.app.name
+      awslogs_stream_prefix  = "/app"
+      environment_json      = jsonencode([])
+      linux_parameters_json = jsonencode({
+        initProcessEnabled = false
+      })
+      app_entrypoint_json    = jsonencode(local.app_entrypoint)
+      app_container_port     = "8501"
+    })
   }
 
   depends_on = [
