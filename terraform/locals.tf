@@ -6,6 +6,15 @@ locals {
   app_codepipeline_codestar_connection_arn = var.app_codepipeline_codestar_connection_arn
   app_github_repo_owner                    = var.app_github_repo_owner
   app_github_repo_name                     = var.app_github_repo_name
+  app_container_name                       = "app"
+  app_container_port                       = 8501
+  app_task_memory                          = 2048
+  app_task_cpu                             = 1024
+  app_environment                          = []
+  app_linux_parameters = {
+    initProcessEnabled = false
+  }
+  app_awslogs_stream_prefix = "/app"
   app_entrypoint = [
     "/bin/bash", "-c",
     "aws s3 sync s3://${aws_s3_bucket.models_store.id} /code/models && streamlit run semantic_app.py --server.port=8501 --server.address=0.0.0.0"

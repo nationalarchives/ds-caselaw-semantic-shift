@@ -63,40 +63,30 @@ resource "aws_codebuild_project" "app_build_pipeline" {
     image           = "aws/codebuild/standard:7.0"
     type            = "LINUX_CONTAINER"
     privileged_mode = true
-
-    environment_variable {
-      name  = "AWS_ACCOUNT_ID"
-      value = local.aws_account_id
-    }
-
-    environment_variable {
-      name  = "CONTAINER_NAME"
-      value = "app"
-    }
-
-    environment_variable {
-      name  = "IMAGE_REPO_NAME"
-      value = aws_ecr_repository.app.name
-    }
-
-    environment_variable {
-      name  = "REPOSITORY_URL"
-      value = aws_ecr_repository.app.repository_url
-    }
-
-    environment_variable {
-      name  = "TASK_DEFINITION_FAMILY"
-      value = aws_ecs_task_definition.app.family
-    }
   }
 
   source {
     type      = "CODEPIPELINE"
-    buildspec = templatefile("${path.root}/buildspecs/app.json.tpl", {})
+    buildspec = templatefile("${path.root}/buildspecs/app.json.tpl", {
+      repository_url         = aws_ecr_repository.app.repository_url
+      container_name         = local.app_container_name
+      task_definition_family = aws_ecs_task_definition.app.family
+      task_role_arn          = aws_iam_role.app_task.arn
+      execution_role_arn     = aws_iam_role.app_task_execution.arn
+      task_memory            = local.app_task_memory
+      task_cpu               = local.app_task_cpu
+      cloudwatch_log_group   = aws_cloudwatch_log_group.app.name
+      awslogs_stream_prefix  = local.app_awslogs_stream_prefix
+      environment_json       = jsonencode(local.app_environment)
+      linux_parameters_json  = jsonencode(local.app_linux_parameters)
+      app_entrypoint_json    = jsonencode(local.app_entrypoint)
+      app_container_port     = local.app_container_port
+    })
   }
 
   depends_on = [
     aws_iam_role_policy_attachment.app_build_pipeline_codebuild,
+    aws_iam_role_policy_attachment.app_build_pipeline_codebuild_blue_green,
     aws_iam_role_policy_attachment.app_build_pipeline_codebuild_ecr_push,
   ]
 }
