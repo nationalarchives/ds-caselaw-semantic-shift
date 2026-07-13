@@ -5,7 +5,7 @@ phases:
     commands:
       - echo Build started on `date`
       - echo Logging in to Amazon ECR...
-      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin "${repository_url%/*}"
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin "${split("/", repository_url)[0]}"
   build:
     commands:
       - echo Building the Docker image...
