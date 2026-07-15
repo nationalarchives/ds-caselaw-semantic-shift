@@ -66,7 +66,7 @@ resource "aws_codebuild_project" "app_build_pipeline" {
   }
 
   source {
-    type      = "CODEPIPELINE"
+    type = "CODEPIPELINE"
     buildspec = templatefile("${path.root}/buildspecs/app.json.tpl", {
       repository_url         = aws_ecr_repository.app.repository_url
       container_name         = local.app_container_name

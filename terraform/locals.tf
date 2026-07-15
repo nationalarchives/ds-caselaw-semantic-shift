@@ -1,7 +1,6 @@
 locals {
   project_name                             = var.project_name
   aws_region                               = var.aws_region
-  aws_account_id                           = data.aws_caller_identity.current.account_id
   s3_models_store_bucket_name              = var.s3_models_store_bucket_name
   app_codepipeline_codestar_connection_arn = var.app_codepipeline_codestar_connection_arn
   app_github_repo_owner                    = var.app_github_repo_owner
