@@ -8,13 +8,13 @@ resource "aws_ecs_task_definition" "app" {
   container_definitions = templatefile(
     "./container-definitions/app.json.tpl",
     {
-      container_name = local.app_container_name
-      image          = aws_ecr_repository.app.repository_url
-      entrypoint     = jsonencode(local.app_entrypoint)
-      environment    = jsonencode(local.app_environment),
-      host_port      = local.app_container_port
-      container_port = local.app_container_port
-      linux_parameters = jsonencode(local.app_linux_parameters)
+      container_name        = local.app_container_name
+      image                 = aws_ecr_repository.app.repository_url
+      entrypoint            = jsonencode(local.app_entrypoint)
+      environment           = jsonencode(local.app_environment),
+      host_port             = local.app_container_port
+      container_port        = local.app_container_port
+      linux_parameters      = jsonencode(local.app_linux_parameters)
       cloudwatch_log_group  = aws_cloudwatch_log_group.app.name
       awslogs_stream_prefix = local.app_awslogs_stream_prefix
       region                = local.aws_region

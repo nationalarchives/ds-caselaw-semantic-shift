@@ -165,5 +165,9 @@ resource "aws_alb_listener_rule" "ecs_service_http_host_header" {
     ignore_changes = [
       action,
     ]
+
+    replace_triggered_by = [
+      aws_alb_target_group.ecs_service_blue,
+    ]
   }
 }
