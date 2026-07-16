@@ -19,7 +19,7 @@
     ],
     "environment": ${environment},
     "linuxParameters": ${linux_parameters},
-    "entrypoint": ${entrypoint},
+    "entryPoint": ${entrypoint},
     "command": [],
     "memoryReservation": 16,
     "essential": true
