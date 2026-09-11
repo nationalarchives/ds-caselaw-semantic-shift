@@ -142,6 +142,10 @@ resource "aws_alb_listener" "ecs_service_http_https" {
 
 resource "aws_alb_listener_rule" "ecs_service_http_host_header" {
   listener_arn = aws_alb_listener.ecs_service_http_https.arn
+  # Pinned explicitly (rather than left to auto-assignment) so the Beta
+  # path-based rule (priority 10) is guaranteed to evaluate first; this rule
+  # has no path condition and would otherwise also match /beta requests.
+  priority = 100
 
   action {
     type             = "forward"

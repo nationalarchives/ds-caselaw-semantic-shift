@@ -9,14 +9,14 @@ resource "aws_s3_bucket_policy" "models_store" {
     "${path.root}/policies/s3-bucket-policy.json.tpl",
     {
       statement = <<EOT
-      [
-      ${templatefile("${path.root}/policies/s3-bucket-policy-statements/enforce-tls.json.tpl",
+			[
+			${templatefile("${path.root}/policies/s3-bucket-policy-statements/enforce-tls.json.tpl",
       {
         bucket_arn = aws_s3_bucket.models_store.arn
       }
   )}
-      ]
-      EOT
+			]
+			EOT
 }
 )
 }
