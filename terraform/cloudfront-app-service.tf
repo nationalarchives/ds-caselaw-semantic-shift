@@ -78,6 +78,26 @@ resource "aws_cloudfront_distribution" "app_service" {
     }
   }
 
+  # Additive only: routes /beta* to the same ALB origin via its own basic-auth
+  # function, without changing the default (alpha) behavior above.
+  ordered_cache_behavior {
+    path_pattern           = local.beta_cloudfront_path_pattern
+    allowed_methods        = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods         = ["GET", "HEAD"]
+    target_origin_id       = "app-default"
+    compress               = true
+    viewer_protocol_policy = "redirect-to-https"
+
+    cache_policy_id            = data.aws_cloudfront_cache_policy.managed_policy.id
+    origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.managed_policy.id
+    response_headers_policy_id = data.aws_cloudfront_response_headers_policy.managed_policy.id
+
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.beta_service_viewer_request.arn
+    }
+  }
+
   restrictions {
     geo_restriction {
       restriction_type = "none"

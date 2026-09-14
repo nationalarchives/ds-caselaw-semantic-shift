@@ -33,3 +33,112 @@ In particular:
 
 - `codebuild-app-build-pipeline.tf` injects `buildspecs/app.json.tpl` into the CodeBuild project.
 - `buildspecs/app.json.tpl` renders `container-definitions/app.json.tpl` and `appspecs/ecs.json.tpl` using `envsubst`.
+
+## Beta app deployment (caselaw-semantic-beta)
+
+Beta is deployed as a small, explicit second application on the existing Alpha
+platform (shared VPC, ALB, CloudFront distribution, ECS cluster, and build
+artifact bucket), reachable at `https://research.caselaw.nationalarchives.gov.uk/beta`.
+
+New Terraform modules are sourced from
+[`nationalarchives/da-terraform-modules`](https://github.com/nationalarchives/da-terraform-modules)
+(pinned by commit via `local.tf_modules_ref` in `locals.tf`, as the module repo
+has no tagged releases yet) for: ECR, IAM role/policy, and security group.
+There is no published module yet for ECS services/tasks, ALB, CloudFront, or
+CodePipeline/CodeBuild/CodeDeploy, so those Beta resources are plain
+`aws_*` resources following the same pattern as the existing alpha resources.
+
+### Owning repositories
+
+- Application code, Dockerfile, dependencies, and app-level tests: [`nationalarchives/da-caselaw-semantic-beta`](https://github.com/nationalarchives/da-caselaw-semantic-beta)
+- Shared/Beta infrastructure (this repo): ECR, ECS task/service, ALB target
+  groups/listener rule, CloudFront `/beta*` behaviour, CodePipeline/CodeBuild/
+  CodeDeploy, IAM, and the Secrets Manager basic auth reference — all in
+  `terraform/*-beta*.tf` and `terraform/*beta*` template files. Beta reads
+  embeddings from an existing S3 Vectors bucket/index; see "Model/embedding
+  updates" below.
+
+### Deployment and rollback
+
+- Deploy: push to `main` on the Beta app repo triggers
+  `${project_name}-beta-build` (CodePipeline → CodeBuild → CodeDeploy
+  blue/green), the same pattern as alpha. The pipeline records the source
+  commit SHA in the image tag (`commit-$CODEBUILD_RESOLVED_SOURCE_VERSION`) and
+  registers a new task definition revision per deploy.
+- Rollback: redeploy a previous successful pipeline execution from CodePipeline
+  history, or use CodeDeploy's automatic rollback (`DEPLOYMENT_FAILURE` already
+  triggers auto-rollback). Because deployments are blue/green, the previous
+  task set remains available to fail back to during the deployment bake window.
+- First-time infrastructure changes require `terraform plan`/`apply` from this
+  directory; application-only changes do not.
+
+### Model/embedding updates
+
+- Model and embedding updates for Beta are a manual, ad hoc process run out of
+  band by the maintainer against the existing S3 Vectors bucket/index
+  referenced by `beta_s3vectors_index_arn`. The web ECS task has read-only
+  `QueryVectors`/`GetVectors` access and never writes vectors at runtime.
+- There is no automated ingestion pipeline for this.
+
+### Secrets: Beta CloudFront basic auth
+
+- The secret container (`aws_secretsmanager_secret.beta_cloudfront_basic_auth`,
+  named via `beta_cloudfront_basic_auth_secret_name`) is created by Terraform.
+  The secret **value** is provisioned and rotated out of band and must never be
+  committed to tfvars, source code, container images, or Slack.
+- Secrets Manager is a reasonable place to store this value, but at `apply`
+  time it is read and embedded as plaintext directly into the deployed
+  `beta-service-viewer-request` CloudFront Function code (see
+  `cloudfront-beta-service.tf` / `cloudfront-functions/viewer-request.js.tpl`).
+  That's not best practice, but is acceptable here given the credential is a
+  low-sensitivity access limiter, not a security boundary (see below).
+  Tightening this (e.g. an alternative to embedding it in the function body) is a non-blocking follow-up, not a blocker for this deployment.
+- Bootstrap / rotation procedure:
+  1. On a **fresh environment** (secret container does not exist yet), run
+     `terraform apply -target=aws_secretsmanager_secret.beta_cloudfront_basic_auth`
+     first. A normal `terraform apply` will fail here: the
+     `aws_secretsmanager_secret_version` data source requires a secret version
+     to already exist, and a brand-new secret has none. If the secret already
+     exists (e.g. rotating an existing deployment), skip to step 2.
+  2. Seed or rotate the value directly in Secrets Manager, storing a JSON
+     object of username→password with no single-quote characters (the value is
+     interpolated into a CloudFront Function, so a stray `'` would break it):
+     `aws secretsmanager put-secret-value --secret-id <beta_cloudfront_basic_auth_secret_name> --secret-string '{"researcher":"<password>"}'`
+  3. `terraform apply` (normal, untargeted) — this re-reads the current secret
+     version and redeploys the `beta-service-viewer-request` CloudFront
+     Function with the new credentials.
+- Basic auth is treated as an access limiter, not strong access control, for
+  this R&D deployment; a leaked credential is low risk (public source data) and
+  is handled by rotating per the steps above, not by incident response.
+
+### Logging
+
+Following the existing Alpha/FCL standard already in place in this repo:
+
+- **Application logs**: CloudWatch Logs group `/ecs/beta` (30-day retention,
+  matching `/ecs/app`), written via the `awslogs` driver.
+- **ECS**: task/service events visible via the ECS console/CLI; no separate
+  ECS Exec logging is enabled (ECS Exec is not enabled for Beta).
+- **CloudFront**: access is via the shared distribution; enable/verify
+  standard logging in line with however the alpha distribution's logging is
+  configured (no separate logging config was added specifically for Beta).
+- **S3 Vectors**: Beta queries an existing S3 Vectors bucket/index; it is not
+  Terraform-managed and has no bucket-style access logging.
+- Access control on all of the above follows the same IAM boundaries as the
+  rest of this stack (task roles, execution roles, and CI roles scoped as
+  documented in `ecs-task-definition-beta-iam.tf`).
+
+### Data recovery / audit posture (S3 Vectors and model assets)
+
+- Model/embedding updates are manual today (see above); there is no automated
+  backup of the S3 Vectors bucket/index.
+- The S3 Vectors bucket/index itself does not currently have documented
+  data-event logging enabled specifically for Beta.
+
+### Model provenance
+
+- Beta's search results are model-generated semantic associations (embedding
+  similarity), not verified legal categorisation. This is an R&D prototype;
+  full provenance, evidential audit, explanation of results, and
+  production-grade governance are explicitly deferred until productionisation,
+  per the ticket for this deployment.
