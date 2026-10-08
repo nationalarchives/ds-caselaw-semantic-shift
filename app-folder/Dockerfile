@@ -1,4 +1,4 @@
-FROM python:3.12.13-trixie@sha256:dd4fe98ab39f91e936f8e7e7a65a3ce59ecfb11e32f9a125b3132779920ba7f7
+FROM python:3.14.8-trixie@sha256:a11116e648ddd8a05e1120014c8e6ac259f718040b67e2dcd6a7c0b7bab3ff2c
 
 # renovate: depName=awscli
 ENV AWS_CLI_VERSION="2.35.14"
